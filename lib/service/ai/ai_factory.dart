@@ -1,6 +1,7 @@
 import 'package:anx_reader/service/ai/claude_client.dart';
 import 'package:anx_reader/service/ai/deepseek_client.dart';
 import 'package:anx_reader/service/ai/gemini_client.dart';
+import 'package:anx_reader/service/ai/ollama_client.dart';
 import 'package:anx_reader/service/ai/openai_client.dart';
 
 class AiFactory {
@@ -18,6 +19,8 @@ class AiFactory {
         return geminiGenerateStream(messages, config);
       case "deepseek":
         return deepSeekGenerateStream(messages, config);
+      case 'ollama':
+        return OllamaClient(config).generateStream(messages);
       default:
         throw Exception("Invalid AI identifier: $identifier");
     }

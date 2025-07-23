@@ -27,7 +27,7 @@ class _AISettingsState extends ConsumerState<AISettings> {
   int currentIndex = 0;
   late List<Map<String, dynamic>> initialServicesConfig;
   bool _obscureApiKey = true;
-  
+
   List<Map<String, dynamic>> services = EnvVar.isBeian
       ? [
           {
@@ -74,6 +74,16 @@ class _AISettingsState extends ConsumerState<AISettings> {
           },
         ]
       : [
+          {
+            "identifier": "ollama",
+            "title": "ollama",
+            "logo": "assets/images/openai.png",
+            "config": {
+              "url": "http://localhost:11434/api/chat",
+              "api_key": "YOUR_API_KEY",
+              "model": "gpt-4o-mini",
+            },
+          },
           {
             "identifier": "openai",
             "title": "OpenAI",
