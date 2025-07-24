@@ -76,12 +76,17 @@ class _AISettingsState extends ConsumerState<AISettings> {
       : [
           {
             "identifier": "ollama",
-            "title": "ollama",
-            "logo": "assets/images/openai.png",
+            "title": "Ollama",
+            "logo": "assets/images/ollama.png",
             "config": {
-              "url": "http://localhost:11434/api/chat",
-              "api_key": "YOUR_API_KEY",
-              "model": "gpt-4o-mini",
+              "url": "http://localhost:11434",
+              "model": "llama3.2",
+              "api_key": "",
+              "keep_alive": "5m",
+              "enable_thinking": "false",
+              "hide_thinking": "false",
+              "timeout": "30000",
+              "basic_auth": "",
             },
           },
           {
@@ -126,6 +131,101 @@ class _AISettingsState extends ConsumerState<AISettings> {
             },
           },
         ];
+
+  // Ollama 專用輔助方法
+  bool _isDropdownField(String key) {
+    return key == "enable_thinking" || key == "hide_thinking";
+  }
+
+  String _getFieldLabel(String key) {
+    switch (key) {
+      case "api_key":
+        return "api_key (optional)";
+      case "keep_alive":
+        return "keep_alive";
+      case "enable_thinking":
+        return "enable_thinking";
+      case "hide_thinking":
+        return "hide_thinking";
+      case "timeout":
+        return "timeout (ms)";
+      case "basic_auth":
+        return "basic_auth (optional)";
+      default:
+        return key;
+    }
+  }
+
+  String _getFieldHelpText(String key) {
+    switch (key) {
+      case "model":
+        return "常見模型：llama3.2, deepseek-r1, qwen2.5, gemma2 等";
+      case "api_key":
+        return "通常不需要，可留空";
+      case "keep_alive":
+        return "模型保持在記憶體的時間（如：5m, 1h, -1 表示永久）";
+      case "enable_thinking":
+        return "啟用思維模式解析（用於 DeepSeek-R1 等思維模型）";
+      case "hide_thinking":
+        return "隱藏思維過程，只顯示最終答案";
+      case "timeout":
+        return "請求超時時間（毫秒），預設 30000";
+      case "basic_auth":
+        return "基本認證，格式：username:password";
+      case "url":
+        return "Ollama 服務器地址，預設 http://localhost:11434";
+      default:
+        return "";
+    }
+  }
+
+  Widget _buildTextField(String key) {
+    return TextField(
+      obscureText: key == "api_key" && _obscureApiKey,
+      controller: TextEditingController(
+          text: services[currentIndex]["config"][key] ??
+              initialServicesConfig[currentIndex]["config"][key]),
+      decoration: InputDecoration(
+        border: const OutlineInputBorder(),
+        labelText: _getFieldLabel(key),
+        hintText: services[currentIndex]["config"][key],
+        suffixIcon: key == "api_key"
+            ? IconButton(
+                onPressed: () {
+                  setState(() {
+                    _obscureApiKey = !_obscureApiKey;
+                  });
+                },
+                icon: _obscureApiKey
+                    ? const Icon(Icons.visibility_off)
+                    : const Icon(Icons.visibility),
+              )
+            : null,
+      ),
+      onChanged: (value) {
+        services[currentIndex]["config"][key] = value;
+      },
+    );
+  }
+
+  Widget _buildDropdownField(String key) {
+    return DropdownButtonFormField<String>(
+      value: services[currentIndex]["config"][key] ?? "false",
+      decoration: InputDecoration(
+        border: const OutlineInputBorder(),
+        labelText: _getFieldLabel(key),
+      ),
+      items: const [
+        DropdownMenuItem(value: "false", child: Text("false")),
+        DropdownMenuItem(value: "true", child: Text("true")),
+      ],
+      onChanged: (value) {
+        setState(() {
+          services[currentIndex]["config"][key] = value ?? "false";
+        });
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -177,6 +277,8 @@ class _AISettingsState extends ConsumerState<AISettings> {
     ];
 
     Widget aiConfig() {
+      final isOllama = services[currentIndex]["identifier"] == "ollama";
+      
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -190,31 +292,24 @@ class _AISettingsState extends ConsumerState<AISettings> {
           for (var key in services[currentIndex]["config"].keys)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: TextField(
-                obscureText: key == "api_key" && _obscureApiKey,
-                controller: TextEditingController(
-                    text: services[currentIndex]["config"][key] ??
-                        initialServicesConfig[currentIndex]["config"][key]),
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  labelText: key,
-                  hintText: services[currentIndex]["config"][key],
-                  suffixIcon: key == "api_key"
-                      ? IconButton(
-                          onPressed: () {
-                            setState(() {
-                              _obscureApiKey = !_obscureApiKey;
-                            });
-                          },
-                          icon: _obscureApiKey
-                              ? const Icon(Icons.visibility_off)
-                              : const Icon(Icons.visibility),
-                        )
-                      : null,
-                ),
-                onChanged: (value) {
-                  services[currentIndex]["config"][key] = value;
-                },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isOllama && _isDropdownField(key))
+                    _buildDropdownField(key)
+                  else
+                    _buildTextField(key),
+                  if (isOllama && _getFieldHelpText(key).isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        _getFieldHelpText(key),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.7),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           Row(
