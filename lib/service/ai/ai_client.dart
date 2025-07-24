@@ -48,7 +48,6 @@ abstract class AiClient {
   }
 
   Stream<String> generateStream(List<Map<String, dynamic>> messages) async* {
-    print("testtest | 測試試試 ${messages}");
     final dio = AiDio.instance.dio;
 
     try {
@@ -71,7 +70,6 @@ abstract class AiClient {
         ),
       )) {
         if (response.statusCode != 200) {
-          print("testtest | Error: ${response.statusCode} \n $chunk");
           yield* Stream.error('Error: ${response.statusCode} \n $chunk');
           continue;
         }
@@ -85,7 +83,6 @@ abstract class AiClient {
         }
       }
     } catch (e) {
-      print("testtest | 'Request failed: $e'");
       yield* Stream.error('Request failed: $e');
     } finally {
       dio.close();
