@@ -92,36 +92,20 @@ class OllamaClient extends AiClient {
   /// 是否啟用思維模式解析
   bool get _enableThinkingMode {
     final value = config['enable_thinking'];
-    if (value == true) return true;
-    if (value == false) return false;
-    if (value is String) {
-      final stringValue = value as String;
-      return stringValue.toLowerCase() == 'true';
-    }
-    return false;
+    return value?.toLowerCase() == 'true';
   }
 
   /// 是否隱藏思維內容（只返回最終答案）
   bool get _hideThinking {
     final value = config['hide_thinking'];
-    if (value == true) return true;
-    if (value == false) return false;
-    if (value is String) {
-      final stringValue = value as String;
-      return stringValue.toLowerCase() == 'true';
-    }
-    return false;
+    return value?.toLowerCase() == 'true';
   }
 
   /// 獲取超時設定（毫秒）
   int get _requestTimeout {
     final timeout = config['timeout'];
-    if (timeout is int) {
-      return timeout as int;
-    }
-    if (timeout is String) {
-      final stringValue = timeout as String;
-      final parsed = int.tryParse(stringValue);
+    if (timeout != null) {
+      final parsed = int.tryParse(timeout);
       if (parsed != null) {
         return parsed;
       }
@@ -436,6 +420,145 @@ class OllamaClient extends AiClient {
     } catch (e) {
       // 無法解析為 JSON，返回 null
       return null;
+    }
+  }
+
+  /// 驗證 Ollama URL 連接
+  static Future<Map<String, dynamic>> validateUrl(String url) async {
+    if (url.isEmpty) {
+      return {
+        'success': false,
+        'error': 'URL 不能為空',
+      };
+    }
+
+    try {
+      final dio = Dio();
+      final baseUrl =
+          url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+      final versionUrl = '$baseUrl/api/version';
+
+      final response = await dio.get(
+        versionUrl,
+        options: Options(
+          sendTimeout: const Duration(seconds: 5),
+          receiveTimeout: const Duration(seconds: 5),
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'baseUrl': baseUrl,
+          'version': response.data,
+        };
+      } else {
+        return {
+          'success': false,
+          'error': _formatConnectionError(response.statusCode, null),
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': _formatConnectionError(null, e),
+      };
+    }
+  }
+
+  /// 格式化連接錯誤訊息
+  static String _formatConnectionError(int? statusCode, dynamic error) {
+    if (statusCode != null) {
+      switch (statusCode) {
+        case 404:
+          return "Ollama 服務未找到。請確認：\n• Ollama 是否已正確安裝\n• 服務器地址是否正確 (默認: http://localhost:11434)";
+        case 500:
+          return "Ollama 服務器內部錯誤。請嘗試：\n• 重啟 Ollama 服務\n• 檢查服務器日誌";
+        case 503:
+          return "Ollama 服務不可用。可能原因：\n• 服務正在啟動中\n• 服務器負載過高";
+        default:
+          return "連接失敗 (HTTP $statusCode)。請檢查服務器狀態。";
+      }
+    } else if (error != null) {
+      final errorStr = error.toString().toLowerCase();
+      if (errorStr.contains('connection refused') ||
+          errorStr.contains('failed to connect')) {
+        return "無法連接到 Ollama 服務。請確認：\n• Ollama 服務是否正在運行\n• 地址是否正確 (如: http://localhost:11434)\n• 防火牆是否阻擋連接";
+      } else if (errorStr.contains('timeout')) {
+        return "連接超時。可能原因：\n• 網絡連接不穩定\n• 服務器響應緩慢\n• 請檢查網絡設置";
+      } else if (errorStr.contains('host lookup failed') ||
+          errorStr.contains('no address')) {
+        return "無法解析主機地址。請確認：\n• 服務器地址格式正確\n• DNS 設置正常";
+      } else {
+        return "連接錯誤：${error.toString()}\n請檢查網絡連接和服務器設置。";
+      }
+    }
+    return "未知錯誤，請檢查連接設置。";
+  }
+
+  /// 獲取 Ollama 模型列表
+  static Future<Map<String, dynamic>> fetchModels(String baseUrl) async {
+    if (baseUrl.isEmpty) {
+      return {
+        'success': false,
+        'error': 'Base URL 不能為空',
+      };
+    }
+
+    try {
+      final dio = Dio();
+      final tagsUrl = '$baseUrl/api/tags';
+
+      final response = await dio.get(
+        tagsUrl,
+        options: Options(
+          sendTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data is Map && data['models'] is List) {
+          final models = data['models'] as List;
+          final modelNames = models
+              .map((model) {
+                // 提取模型名稱
+                if (model is Map && model['name'] is String) {
+                  return model['name'] as String;
+                }
+                return '';
+              })
+              .where((name) => name.isNotEmpty)
+              .toList();
+
+          // 按字母順序排序模型
+          modelNames.sort();
+
+          return {
+            'success': true,
+            'models': modelNames,
+            'rawData': data,
+          };
+        } else {
+          return {
+            'success': false,
+            'error': '回應格式錯誤：無法解析模型列表',
+          };
+        }
+      } else {
+        return {
+          'success': false,
+          'error': _formatConnectionError(response.statusCode, null),
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': _formatConnectionError(null, e),
+      };
     }
   }
 }
