@@ -1,3 +1,15 @@
+/*
+ * Ollama AI Integration Features
+ * Copyright (c) 2025 Genius Holdings Co., Ltd (https://github.com/ezoxygenTeam)
+ * Managed by: tipo (LI, CHING-YU) (https://github.com/tipoLi5890)
+ * 
+ * This file is subject to dual licensing:
+ * - Commercial License: Contact Genius Holdings Co., Ltd for commercial use
+ * - AGPL-3.0 License: https://www.gnu.org/licenses/agpl-3.0.html
+ * 
+ * See LICENSE-OLLAMA-AI.md for complete licensing terms.
+ */
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';

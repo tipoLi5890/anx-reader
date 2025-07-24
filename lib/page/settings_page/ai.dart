@@ -132,6 +132,18 @@ class _AISettingsState extends ConsumerState<AISettings> {
           },
         ];
 
+  /*
+   * Ollama AI Integration - UI Components
+   * Copyright (c) 2025 Genius Holdings Co., Ltd (https://github.com/ezoxygenTeam)
+   * Managed by: tipo (LI, CHING-YU) (https://github.com/tipoLi5890)
+   * 
+   * The following Ollama-specific methods are subject to dual licensing:
+   * - Commercial License: Contact Genius Holdings Co., Ltd
+   * - AGPL-3.0 License: https://www.gnu.org/licenses/agpl-3.0.html
+   * 
+   * See LICENSE-OLLAMA-AI.md for complete licensing terms.
+   */
+   
   // Ollama 專用輔助方法
   bool _isDropdownField(String key) {
     return key == "enable_thinking" || key == "hide_thinking";
